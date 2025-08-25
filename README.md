@@ -35,6 +35,7 @@
    - http://localhost:4000/graphql
 
    Можно делать запросы в GraphQL Playground по типу этого:
+   ```sh
    mutation {
      register(username: "testuser", email: "test@example.com", password: "password123") {
        user {
@@ -45,6 +46,7 @@
        error
      }
    }
+   ```
 
-6. Минимальный frontend: 
+7. Минимальный frontend: 
    - http://localhost:4000/
