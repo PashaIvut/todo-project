@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Todo App - Тестирование API</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        input, button { margin: 5px; padding: 5px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div id="auth-page" class="page active">
+        <h1>Todo App - Авторизация</h1>
+        
+        <div class="section">
+            <h3>Регистрация</h3>
+            <input type="text" id="reg-username" placeholder="Имя пользователя">
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="password" id="reg-password" placeholder="Пароль">
+            <button onclick="register()">Зарегистрироваться</button>
+            <div id="reg-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>Вход</h3>
+            <input type="email" id="login-email" placeholder="Email">
+            <input type="password" id="login-password" placeholder="Пароль">
+            <button onclick="login()">Войти</button>
+            <div id="login-result" class="result"></div>
+        </div>
+    </div>
+
+    <div id="tasks-page" class="page">
+        <div class="header">
+            <h1>Todo App - Мои задачи</h1>
+            <div>
+                <span id="user-info"></span>
+                <button onclick="logout()">Выйти</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Создать задачу</h3>
+            <input type="text" id="task-title" placeholder="Название задачи">
+            <input type="text" id="task-description" placeholder="Описание">
+            <button onclick="createTask()">Создать</button>
+            <div id="create-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>Мои задачи</h3>
+            <button onclick="getTasks()">Обновить список</button>
+            <div id="tasks-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>Редактировать задачу</h3>
+            <input type="text" id="edit-id" placeholder="ID задачи">
+            <input type="text" id="edit-title" placeholder="Новое название">
+            <input type="text" id="edit-description" placeholder="Новое описание">
+            <input type="checkbox" id="edit-completed"> Выполнено
+            <button onclick="updateTask()">Обновить</button>
+            <div id="update-result" class="result"></div>
+        </div>
+
+        <div class="section">
+            <h3>Удалить задачу</h3>
+            <input type="text" id="delete-id" placeholder="ID задачи">
+            <button onclick="deleteTask()">Удалить</button>
+            <div id="delete-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000/graphql';
+        let currentUser = null;
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('user-info').textContent = `Пользователь: ${currentUser.username}`;
+            }
+        }
+
+        async function graphqlRequest(query, variables = {}) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, variables })
+                });
+                return await response.json();
+            } catch (error) {
+                return { errors: [{ message: error.message }] };
+            }
+        }
+
+        function register() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            const query = `
+                mutation {
+                    register(username: "${username}", email: "${email}", password: "${password}") {
+                        user { id username email }
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('reg-result').textContent = JSON.stringify(result, null, 2);
+                if (result.data?.register?.user) {
+                    alert('Регистрация успешна! Теперь войдите в систему.');
+                    document.getElementById('reg-username').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-password').value = '';
+                }
+            });
+        }
+
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const query = `
+                mutation {
+                    login(email: "${email}", password: "${password}") {
+                        user { id username email }
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('login-result').textContent = JSON.stringify(result, null, 2);
+                if (result.data?.login?.user) {
+                    currentUser = result.data.login.user;
+                    updateUserInfo();
+                    showPage('tasks-page');
+                    document.getElementById('login-email').value = '';
+                    document.getElementById('login-password').value = '';
+                    getTasks();
+                }
+            });
+        }
+
+        function logout() {
+            currentUser = null;
+            showPage('auth-page');
+            document.querySelectorAll('.result').forEach(el => el.textContent = '');
+        }
+
+        function createTask() {
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+
+            const query = `
+                mutation {
+                    createTask(title: "${title}", description: "${description}") {
+                        task { id title description completed }
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('create-result').textContent = JSON.stringify(result, null, 2);
+                if (result.data?.createTask?.task) {
+                    document.getElementById('task-title').value = '';
+                    document.getElementById('task-description').value = '';
+                    getTasks();
+                }
+            });
+        }
+
+        function getTasks() {
+            const query = `
+                query {
+                    tasks {
+                        tasks { id title description completed }
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('tasks-result').textContent = JSON.stringify(result, null, 2);
+            });
+        }
+
+        function updateTask() {
+            const id = document.getElementById('edit-id').value;
+            const title = document.getElementById('edit-title').value;
+            const description = document.getElementById('edit-description').value;
+            const completed = document.getElementById('edit-completed').checked;
+
+            const query = `
+                mutation {
+                    updateTask(id: "${id}", title: "${title}", description: "${description}", completed: ${completed}) {
+                        task { id title description completed }
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('update-result').textContent = JSON.stringify(result, null, 2);
+                if (result.data?.updateTask?.task) {
+                    document.getElementById('edit-id').value = '';
+                    document.getElementById('edit-title').value = '';
+                    document.getElementById('edit-description').value = '';
+                    document.getElementById('edit-completed').checked = false;
+                    getTasks();
+                }
+            });
+        }
+
+        function deleteTask() {
+            const id = document.getElementById('delete-id').value;
+
+            const query = `
+                mutation {
+                    deleteTask(id: "${id}") {
+                        success
+                        error
+                    }
+                }
+            `;
+
+            graphqlRequest(query).then(result => {
+                document.getElementById('delete-result').textContent = JSON.stringify(result, null, 2);
+                if (result.data?.deleteTask?.success) {
+                    document.getElementById('delete-id').value = '';
+                    getTasks();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

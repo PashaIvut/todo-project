@@ -1,0 +1,45 @@
+type Task {
+  id: ID!
+  title: String!
+  description: String
+  completed: Boolean!
+  user: User!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type TasksResult {
+  tasks: [Task!]!
+  error: String
+}
+
+type TaskResult {
+  task: Task
+  error: String
+}
+
+type CreateTaskResult {
+  task: Task
+  error: String
+}
+
+type UpdateTaskResult {
+  task: Task
+  error: String
+}
+
+type DeleteTaskResult {
+  success: Boolean!
+  error: String
+}
+
+type Query {
+  tasks: TasksResult!
+  task(id: ID!): TaskResult
+}
+
+type Mutation {
+  createTask(title: String!, description: String): CreateTaskResult!
+  updateTask(id: ID!, title: String, description: String, completed: Boolean): UpdateTaskResult!
+  deleteTask(id: ID!): DeleteTaskResult!
+}

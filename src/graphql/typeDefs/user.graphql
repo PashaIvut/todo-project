@@ -1,0 +1,30 @@
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  createdAt: String!
+}
+
+type AuthResult {
+  user: User
+  error: String
+}
+
+type LoginResult {
+  user: User
+  error: String
+}
+
+type RegisterResult {
+  user: User
+  error: String
+}
+
+type Query {
+  me: AuthResult
+}
+
+type Mutation {
+  register(username: String!, email: String!, password: String!): RegisterResult!
+  login(email: String!, password: String!): LoginResult!
+}
